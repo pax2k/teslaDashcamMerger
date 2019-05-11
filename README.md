@@ -1,7 +1,8 @@
 # Tesla Dashcam Merger
 Combining all three recorded files into one single video file.
 
-Note: this is an hobby project. Not connected to Tesla, Inc in any way!
+Note: this is a pet project. Not connected to Tesla, Inc in any way!
+
 
 To build the project: mvn clean install
 
