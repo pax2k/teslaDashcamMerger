@@ -6,13 +6,10 @@ import no.koteng.dashcam.model.Position;
 import no.koteng.dashcam.model.Video;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,17 +42,25 @@ public class Util {
         return combinedVideoList;
     }
 
-    public static void combineMovies(CombinedVideo combinedVideo, String outputFolder, TextArea debugInfo) throws URISyntaxException, IOException {
-        final URL res;
+    public static void combineMovies(CombinedVideo combinedVideo, String outputFolder, TextArea debugInfo) throws IOException {
+        final InputStream ffmpegFromJar;
+        String suffix = "";
         if (isWindows()) {
-            res = Startup.class.getClassLoader().getResource("ffmpeg.exe");
+            ffmpegFromJar = Startup.class.getClassLoader().getResourceAsStream("ffmpeg.exe");
+            suffix = ".exe";
         } else {
-            res = Startup.class.getClassLoader().getResource("ffmpeg");
+            ffmpegFromJar = Startup.class.getClassLoader().getResourceAsStream("ffmpeg");
         }
 
-        // TODO create temp file and use thiis file
-        File ffmpegFile = Paths.get(res.toURI()).toFile();
-        String ffmpegPath = ffmpegFile.getAbsolutePath();
+        File ffmpegTemp = File.createTempFile("ffmpeg", suffix);
+        Files.copy(ffmpegFromJar, Paths.get(ffmpegTemp.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
+
+        if (!isWindows()) {
+            makeFileExecutalble(ffmpegTemp);
+        }
+
+
+        String ffmpegPath = ffmpegTemp.getAbsolutePath();
         String left = combinedVideo.getLeft().getAcualFile().getAbsolutePath();
         String middle = combinedVideo.getMiddle().getAcualFile().getAbsolutePath();
         String right = combinedVideo.getRight().getAcualFile().getAbsolutePath();
@@ -101,6 +106,28 @@ public class Util {
                 counter = 0;
             }
         }
+    }
+
+    private static void makeFileExecutalble(File ffmpegTemp) throws IOException {
+        List<String> commands = new ArrayList<>();
+        commands.add("/bin/sh");
+        commands.add("-c");
+        commands.add("chmod +x " + ffmpegTemp.getAbsolutePath());
+
+        ProcessBuilder builder = new ProcessBuilder(commands);
+        builder.redirectErrorStream(true);
+        Process p = builder.start();
+
+        BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        while (true) {
+            String line = r.readLine();
+            if (line == null) {
+                break;
+            }
+
+            System.out.println(line);
+        }
+
     }
 
     private static void validateFile(File fileToValidate) {

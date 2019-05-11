@@ -9,7 +9,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
 
 public class MainFrame extends JFrame {
@@ -21,11 +20,11 @@ public class MainFrame extends JFrame {
 
     private JButton selectVideoOutputFolder = new JButton("select");
     private JLabel selectedVideoOutPutFolderLabel = getLabel("-", 450);
-    private final TextArea debugInfo = new TextArea(7, 80);
+    private final TextArea debugInfo = new TextArea(7, 100);
 
     public MainFrame() throws HeadlessException {
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        this.setTitle("Tesla dash cam video combiner");
+        this.setTitle("Tesla Dashcam Video Combiner");
         this.setLocation(300, 300);
 
         JPanel mainPanel = new JPanel();
@@ -60,6 +59,7 @@ public class MainFrame extends JFrame {
                     SwingWorker<Void, String> swingWorker = new SwingWorker<Void, String>() {
                         @Override
                         protected Void doInBackground() {
+                            debugInfo.append("Starting to create movie!");
                             createMovie(debugInfo);
                             return null;
                         }
@@ -88,6 +88,15 @@ public class MainFrame extends JFrame {
                         JOptionPane.WARNING_MESSAGE);
     }
 
+    private void showInfoDialog(String message, String title) {
+        JOptionPane
+                .showMessageDialog(
+                        null,
+                        message,
+                        title,
+                        JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private void createMovie(TextArea debugInfo) {
         File folder = new File(selectedInputLabel.getText());
         File[] allFilesInFolder = folder.listFiles();
@@ -97,11 +106,15 @@ public class MainFrame extends JFrame {
         }
 
         List<CombinedVideo> combinedVideosForFolder = Util.getCombinedVideosForFolder(allFilesInFolder);
+        showInfoDialog("Staring to combine: "
+                + combinedVideosForFolder.size()
+                + " unique videos. This can take several minutes", "Missing camera folder");
+
         for (CombinedVideo video : combinedVideosForFolder) {
             try {
                 Util.combineMovies(video, selectedVideoOutPutFolderLabel.getText(), debugInfo);
-            } catch (URISyntaxException | IOException e) {
-                e.printStackTrace();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
             }
         }
     }
